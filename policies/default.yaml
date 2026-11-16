@@ -1,0 +1,56 @@
+# Default policy for Countersign.
+#
+# Rules are evaluated top to bottom; the first rule whose tool glob and
+# conditions all match wins. If no rule matches, `default` applies.
+
+rules:
+  - name: block_deletes
+    tool: "delete_*"
+    decision: block
+    reason: "Delete actions are never auto-approved; use a manual process."
+
+  - name: refund_small
+    tool: "issue_refund"
+    conditions:
+      - field: amount
+        op: lte
+        value: 50
+    decision: allow
+    reason: "Refunds of $50 or less are auto-approved."
+
+  - name: refund_medium
+    tool: "issue_refund"
+    conditions:
+      - field: amount
+        op: lte
+        value: 500
+    decision: needs_approval
+    reason: "Refunds between $50 and $500 need human review."
+
+  - name: refund_large
+    tool: "issue_refund"
+    decision: block
+    reason: "Refunds over $500 are blocked; use a manual process."
+
+  - name: email_internal
+    tool: "send_email"
+    conditions:
+      - field: to
+        op: contains
+        value: "@our-company.com"
+    decision: allow
+    reason: "Emails to our own domain are auto-approved."
+
+  - name: email_external
+    tool: "send_email"
+    decision: needs_approval
+    reason: "Emails to external domains need human review."
+
+  - name: read_allowed
+    tool: "read_*"
+    decision: allow
+    reason: "Read-only actions are auto-approved."
+
+default:
+  decision: needs_approval
+  reason: "No policy rule matched; default to human review."
