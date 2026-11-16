@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/countersign"]
+packages = ["app"]
 
 [tool.ruff]
 line-length = 100
@@ -32,6 +32,3 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]

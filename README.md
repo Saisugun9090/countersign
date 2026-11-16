@@ -26,10 +26,10 @@ cp .env.example .env
 
 ## Running the API
 
-Locally, against SQLite (default `DATABASE_URL` in `config.py`):
+Locally, against SQLite (default `DATABASE_URL` in `app/db.py`):
 
 ```bash
-uvicorn countersign.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 With Docker Compose (Postgres 16 + API):
