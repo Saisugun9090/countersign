@@ -7,9 +7,9 @@ append-only, hash-chained audit log of every request and decision.
 
 ## Status
 
-Early scaffolding. `/health`, a YAML policy engine (`POST /v1/actions/evaluate`), and a
-hash-chained audit log (`GET /v1/audit`, `GET /v1/audit/verify`) are in place — the
-approval queue is not built yet.
+Early scaffolding. `/health`, a YAML policy engine (`POST /v1/actions/evaluate`), a
+hash-chained audit log (`GET /v1/audit`, `GET /v1/audit/verify`), and a human approval
+queue (`/v1/approvals/*`) are in place.
 
 ## Policy engine
 
@@ -27,6 +27,21 @@ row's hash, so editing or deleting a row is detectable.
 - `GET /v1/audit?action_id=<id>` — the audit entries recorded for one action.
 - `GET /v1/audit/verify` — walks the whole log and recomputes every hash, reporting
   whether the chain is intact.
+
+## Approval queue
+
+An action the policy marks `needs_approval` is also added to a queue a human reviewer
+works from. Every endpoint under `/v1/approvals` requires an
+`Authorization: Bearer <REVIEWER_TOKEN>` header (set `REVIEWER_TOKEN` in `.env`).
+
+- `GET /v1/approvals` — list queued approvals; `?status=pending` filters by status.
+- `GET /v1/approvals/{action_id}` — fetch one approval.
+- `POST /v1/approvals/{action_id}/approve` — body `{"reviewer": "...", "reason": "..."}`.
+- `POST /v1/approvals/{action_id}/reject` — same body shape.
+
+An approval left pending past `APPROVAL_TTL_SECONDS` (default one hour) expires and is
+treated as blocked. Every approve/reject/expiry is also written to the audit log under
+the same `action_id`, so `GET /v1/audit?action_id=` shows an action's full history.
 
 ## Requirements
 

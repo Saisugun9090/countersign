@@ -42,3 +42,30 @@ class AuditEntryResponse(BaseModel):
     prev_hash: str
     hash: str
     created_at: datetime
+
+
+class ApprovalResponse(BaseModel):
+    """One entry in the human approval queue, as returned by the API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    action_id: str
+    agent_id: str
+    tool: str
+    arguments: dict[str, Any]
+    context: str | None
+    reason: str
+    matched_rule: str | None
+    status: Literal["pending", "approved", "rejected", "expired"]
+    created_at: datetime
+    expires_at: datetime
+    decided_at: datetime | None
+    decided_by: str | None
+    decision_reason: str | None
+
+
+class ApprovalDecisionRequest(BaseModel):
+    """A human reviewer's approve/reject decision on a queued action."""
+
+    reviewer: str
+    reason: str

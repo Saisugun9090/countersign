@@ -74,3 +74,29 @@
   `with SessionLocal() as session` per request is simpler while there's only one route
   that writes and two that read. Revisit once more endpoints need a shared session
   (e.g. the approval queue) or testing needs dependency overrides.
+
+## Approval queue (2026-11-16)
+
+- **A single shared `REVIEWER_TOKEN`, not per-agent API keys, guards `/v1/approvals/*`**:
+  the agents calling `/v1/actions/evaluate` and the humans reviewing queued approvals are
+  different trust boundaries, so they get separate auth even before per-agent API keys
+  exist. Per-agent keys are a later feature (the demo agent); until then, nothing agents
+  send should be able to approve or reject anything.
+- **Lazy expiry on read, not a background sweep**: `_expire_if_due` checks `now >
+  expires_at` whenever an approval is fetched (via `get_approval` or `list_approvals`)
+  rather than running a periodic job. There's no task scheduler or worker process in this
+  project yet, and correctness doesn't need one — an approval that's overdue is overdue
+  whether or not anything has looked at it recently; it just needs to be caught before
+  anyone acts on its status.
+- **Expiry's effective decision is `block`, not `allow`**: fail closed, for the same
+  reason the policy's own unmatched-action default is `needs_approval` rather than
+  `allow` — if nobody reviewed it in time, the gateway shouldn't let it through.
+- **A reviewer's approve/reject is written to the audit log as a second entry under the
+  same `action_id`**, decision mapped to the existing `allow`/`block` vocabulary
+  (`approve` → `allow`, `reject` → `block`) rather than inventing new decision values just
+  for human review. `GET /v1/audit?action_id=` then shows the whole lifecycle of an
+  action in order: the policy's original `needs_approval`, followed by the human's final
+  call — without the `approvals` table needing to store its own history.
+- **The `approvals` table holds one row per action, not a full history**: the audit log
+  is already the append-only history; `approvals` only needs the current state (pending,
+  approved, rejected, or expired) to answer "what's outstanding right now."

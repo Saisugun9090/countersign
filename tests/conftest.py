@@ -11,6 +11,8 @@ from pathlib import Path
 
 _TEST_DB_PATH = Path(tempfile.gettempdir()) / f"countersign_test_{os.getpid()}.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH.as_posix()}"
+os.environ["REVIEWER_TOKEN"] = "test-reviewer-token"
+os.environ["APPROVAL_TTL_SECONDS"] = "3600"
 
 
 def pytest_sessionfinish() -> None:
