@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY app ./app
+COPY policies ./policies
+COPY agents.yaml ./agents.yaml
 
 RUN pip install --no-cache-dir .
 

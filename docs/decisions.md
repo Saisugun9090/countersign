@@ -130,3 +130,43 @@
   (used by FastAPI's `TestClient`); `demo/refund_agent.py` now also uses it at runtime
   to call the API, so it belongs in `[project.dependencies]` rather than only `dev`. No
   new dependency was added.
+
+## CI, coverage, and README (2026-11-16)
+
+- **`pytest-cov` added as a dev dependency**: the only new dependency added this
+  weekend. Needed to measure and report line coverage in CI; it's the standard,
+  lightweight way to do that with pytest, and the project otherwise has no coverage
+  tooling to build on.
+- **No coverage badge**: a real badge needs a hosted coverage service (e.g. Codecov)
+  and its token, neither of which is set up. CI reports coverage in its logs and
+  uploads `coverage.xml` as a build artifact either way, so adding a real badge later is
+  just pointing a service at that output — but committing a static or hand-made badge
+  image now would be exactly the "fake" badge the plan explicitly said not to add.
+- **A separate `docker-build` CI job, not a step in the `test` job**: it doesn't need
+  the Python environment the test job sets up, and keeping it separate means a Dockerfile
+  break shows up as its own clearly-labeled failure rather than buried in the test job's
+  log. It only builds the image (no push, no registry) — a smoke test that the
+  Dockerfile still works, which is also the one thing about this project that hasn't
+  been verified any other way (Docker Desktop hasn't been available in this development
+  environment).
+- **`GET /v1/audit` and `GET /v1/audit/verify` are left unauthenticated for now, and
+  called out in the README's Limitations section rather than fixed in this feature**:
+  real but out of scope for "finish weekend one with CI and docs" — flagging it clearly
+  beats quietly leaving it for the user to discover, and the instruction for this feature
+  was explicitly to report what's still rough, not to fix every rough edge found while
+  writing that report.
+- **Docker became available partway through this feature, so the stack was actually run
+  end-to-end for the first time, and that surfaced two real bugs, both fixed**:
+  1. The `Dockerfile` only copied `app/`, not `policies/` or `agents.yaml` — the
+     container crashed on startup (`FileNotFoundError` from `load_policy`) because
+     `app/policy.py` and `app/auth.py` resolve their default paths relative to the
+     package root, which didn't exist in the image. Fixed by copying both.
+  2. `docker-compose.yml`'s `api` service used a plain `depends_on: [db]`, which only
+     waits for the `db` container to *start*, not for Postgres to be ready to accept
+     connections — `api` consistently crashed trying to connect before `db` had
+     finished initializing. Fixed with a `pg_isready` healthcheck on `db` and
+     `depends_on: db: condition: service_healthy` on `api`.
+  These were exactly the kind of gap the "Check it works" step was meant to catch, and
+  would otherwise have shipped as a silent limitation; worth remembering that Docker's
+  unavailability earlier in this project was masking real bugs, not just blocking a
+  verification step.
