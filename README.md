@@ -7,8 +7,15 @@ append-only, hash-chained audit log of every request and decision.
 
 ## Status
 
-Early scaffolding. Currently just a FastAPI skeleton with a `/health` endpoint —
-the policy engine, approval queue, and audit log are not built yet.
+Early scaffolding. `/health` and a YAML policy engine (`POST /v1/actions/evaluate`)
+are in place — the approval queue and audit log are not built yet.
+
+## Policy engine
+
+`policies/default.yaml` holds an ordered list of rules; the first rule whose tool-name
+glob and argument conditions match wins. If no rule matches, the policy's `default`
+decision applies. See [docs/decisions.md](docs/decisions.md) for why it's ordered this
+way. Override the file with the `POLICY_PATH` environment variable.
 
 ## Requirements
 
