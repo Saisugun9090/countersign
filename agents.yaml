@@ -1,0 +1,11 @@
+# Agents registered to call the Countersign API, identified by the SHA-256
+# hash of their API key. The raw key is never stored here.
+#
+# The demo agent's key hash below corresponds to the placeholder key in
+# .env.example (DEMO_AGENT_API_KEY=demo-agent-dev-key-change-me), so the demo
+# CLI works out of the box after `cp .env.example .env`. Rotate it (generate
+# a new random key, hash it with app.auth.hash_key, replace the hash below)
+# before using this outside local development.
+agents:
+  - agent_id: demo-refund-agent
+    key_hash: "41d67940e0362dc8da7c782998c8f1740fad0367a2c91469eaf9d028a3a0e99e"

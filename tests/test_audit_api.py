@@ -3,14 +3,18 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import TEST_AGENT_API_KEY
 
 client = TestClient(app)
+
+AGENT_HEADERS = {"Authorization": f"Bearer {TEST_AGENT_API_KEY}"}
 
 
 def test_evaluate_action_is_recorded_in_audit_log() -> None:
     response = client.post(
         "/v1/actions/evaluate",
-        json={"agent_id": "agent-1", "tool": "issue_refund", "arguments": {"amount": 20}},
+        json={"tool": "issue_refund", "arguments": {"amount": 20}},
+        headers=AGENT_HEADERS,
     )
     action_id = response.json()["action_id"]
 
@@ -33,7 +37,8 @@ def test_audit_entries_for_unknown_action_id_is_empty() -> None:
 def test_audit_log_verifies_as_valid() -> None:
     client.post(
         "/v1/actions/evaluate",
-        json={"agent_id": "agent-1", "tool": "read_record", "arguments": {}},
+        json={"tool": "read_record", "arguments": {}},
+        headers=AGENT_HEADERS,
     )
 
     response = client.get("/v1/audit/verify")

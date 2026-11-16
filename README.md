@@ -8,8 +8,17 @@ append-only, hash-chained audit log of every request and decision.
 ## Status
 
 Early scaffolding. `/health`, a YAML policy engine (`POST /v1/actions/evaluate`), a
-hash-chained audit log (`GET /v1/audit`, `GET /v1/audit/verify`), and a human approval
-queue (`/v1/approvals/*`) are in place.
+hash-chained audit log (`GET /v1/audit`, `GET /v1/audit/verify`), a human approval
+queue (`/v1/approvals/*`), and per-agent API key auth with a demo CLI agent are in
+place.
+
+## Agents and authentication
+
+Agents calling `/v1/actions/evaluate` and `/v1/actions/{action_id}` authenticate with
+`Authorization: Bearer <api key>`. Agents are registered in `agents.yaml` by the
+SHA-256 hash of their key (never the raw key); override the file with the
+`AGENTS_PATH` environment variable. To register a new agent, generate a key, hash it
+with `app.auth.hash_key`, and add it to `agents.yaml`.
 
 ## Policy engine
 
@@ -42,6 +51,20 @@ works from. Every endpoint under `/v1/approvals` requires an
 An approval left pending past `APPROVAL_TTL_SECONDS` (default one hour) expires and is
 treated as blocked. Every approve/reject/expiry is also written to the audit log under
 the same `action_id`, so `GET /v1/audit?action_id=` shows an action's full history.
+
+## Demo agent
+
+`demo/refund_agent.py` is a small CLI that sends an `issue_refund` tool call through
+Countersign as the demo agent registered in `agents.yaml`:
+
+```bash
+python demo/refund_agent.py --amount 25 --customer alice@example.com
+python demo/refund_agent.py --amount 250 --customer bob@example.com --wait
+```
+
+Reads `DEMO_AGENT_API_KEY` and `COUNTERSIGN_URL` (default `http://localhost:8000`)
+from the environment. With `--wait`, if the action needs approval, it polls
+`GET /v1/actions/{action_id}` until a reviewer decides or the approval expires.
 
 ## Requirements
 

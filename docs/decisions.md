@@ -100,3 +100,33 @@
 - **The `approvals` table holds one row per action, not a full history**: the audit log
   is already the append-only history; `approvals` only needs the current state (pending,
   approved, rejected, or expired) to answer "what's outstanding right now."
+
+## Demo agent, per-agent API keys, and CLI (2026-11-16)
+
+- **`agent_id` is removed from the `ActionRequest` body and taken from the API key
+  instead**: once a real credential exists, trusting a client-supplied identity field
+  defeats the point of having one — any agent could claim to be any other agent. The
+  authenticated `agent_id` from `app.auth.require_agent_api_key` is now the only source
+  of truth for who submitted an action.
+- **Agents are registered in `agents.yaml` by key hash, like `policies/default.yaml`**:
+  consistent with the project's existing pattern for small, human-editable config, and it
+  means the raw key is never stored anywhere the server reads from — only its SHA-256
+  hash. `AGENTS_PATH` overrides the file, mirroring `POLICY_PATH`.
+- **No endpoint to self-register new agents yet**: out of scope for a demo with one
+  agent. Adding a new one means generating a key, hashing it (`app.auth.hash_key`), and
+  adding a line to `agents.yaml` by hand — revisit if/when there are enough agents for
+  that to be tedious.
+- **`GET /v1/actions/{action_id}` reads the latest audit log entry, not a separate
+  "current status" table**: the audit log already records every state change
+  (policy decision, then approve/reject/expiry), so its last entry for an action_id *is*
+  the current decision. Also enforces that only the agent who submitted an action
+  (`entries[0].agent_id`) can check its status, not just any authenticated agent.
+- **The demo agent's dev key is a committed placeholder, not a real secret**: its SHA-256
+  hash in `agents.yaml` corresponds to the value already in `.env.example`
+  (`DEMO_AGENT_API_KEY=demo-agent-dev-key-change-me`), so the demo works immediately
+  after `cp .env.example .env` with no setup step. It's clearly documented as
+  local-development-only and must be rotated before registering a real agent.
+- **`httpx` moved from dev-only to a runtime dependency**: it was already a dependency
+  (used by FastAPI's `TestClient`); `demo/refund_agent.py` now also uses it at runtime
+  to call the API, so it belongs in `[project.dependencies]` rather than only `dev`. No
+  new dependency was added.

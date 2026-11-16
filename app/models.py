@@ -8,9 +8,12 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ActionRequest(BaseModel):
-    """A tool call an agent wants to take, sent to Countersign before executing it."""
+    """A tool call an agent wants to take, sent to Countersign before executing it.
 
-    agent_id: str
+    The caller's identity comes from its API key (see app/auth.py), not from
+    the request body, so a request can't claim to be a different agent.
+    """
+
     tool: str
     arguments: dict[str, Any]
     context: str | None = None

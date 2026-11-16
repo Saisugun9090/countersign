@@ -3,16 +3,19 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import TEST_AGENT_API_KEY
 
 client = TestClient(app)
 
 REVIEWER_HEADERS = {"Authorization": "Bearer test-reviewer-token"}
+AGENT_HEADERS = {"Authorization": f"Bearer {TEST_AGENT_API_KEY}"}
 
 
 def _create_pending_approval() -> str:
     response = client.post(
         "/v1/actions/evaluate",
-        json={"agent_id": "agent-1", "tool": "issue_refund", "arguments": {"amount": 100}},
+        json={"tool": "issue_refund", "arguments": {"amount": 100}},
+        headers=AGENT_HEADERS,
     )
     assert response.json()["decision"] == "needs_approval"
     return response.json()["action_id"]
