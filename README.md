@@ -7,8 +7,9 @@ append-only, hash-chained audit log of every request and decision.
 
 ## Status
 
-Early scaffolding. `/health` and a YAML policy engine (`POST /v1/actions/evaluate`)
-are in place — the approval queue and audit log are not built yet.
+Early scaffolding. `/health`, a YAML policy engine (`POST /v1/actions/evaluate`), and a
+hash-chained audit log (`GET /v1/audit`, `GET /v1/audit/verify`) are in place — the
+approval queue is not built yet.
 
 ## Policy engine
 
@@ -16,6 +17,16 @@ are in place — the approval queue and audit log are not built yet.
 glob and argument conditions match wins. If no rule matches, the policy's `default`
 decision applies. See [docs/decisions.md](docs/decisions.md) for why it's ordered this
 way. Override the file with the `POLICY_PATH` environment variable.
+
+## Audit log
+
+Every call to `POST /v1/actions/evaluate` writes an entry to an append-only,
+hash-chained audit log: each row's hash covers all of its own fields plus the previous
+row's hash, so editing or deleting a row is detectable.
+
+- `GET /v1/audit?action_id=<id>` — the audit entries recorded for one action.
+- `GET /v1/audit/verify` — walks the whole log and recomputes every hash, reporting
+  whether the chain is intact.
 
 ## Requirements
 

@@ -43,3 +43,34 @@
 - **`fnmatch.fnmatchcase` for tool-name globs**: case-sensitive by default, which matches
   how tool names are expected to be written consistently (e.g. `delete_*`, `read_*`), and
   avoids platform-dependent case folding that plain `fnmatch.fnmatch` has on Windows.
+
+## Hash-chained audit log (2026-11-16)
+
+- **Hash covers every field except `hash` itself, including `prev_hash`**: chaining
+  `prev_hash` into the hash (rather than storing it alongside an independently-hashed
+  row) is what makes the log a chain — deleting a row breaks the `prev_hash` link on the
+  row after it, and editing a row changes its own hash, so both are detectable by
+  `verify_chain` without needing a separate Merkle structure.
+- **Canonical JSON (`sort_keys=True`, no whitespace) for the hash input**: hashing a
+  Python dict's `repr()` or an unsorted `json.dumps()` would make the hash depend on
+  incidental key order, so the same logical entry could hash differently depending on
+  how it was constructed. Canonical JSON removes that ambiguity.
+- **`GENESIS_HASH` (64 zeros) as the `prev_hash` of the first entry**: a fixed, known
+  sentinel rather than `None`/empty string keeps `prev_hash` a plain fixed-length string
+  across the whole table; it's simpler than a precomputed first row and keeps
+  `verify_chain`'s loop uniform (every row, including the first, checks
+  `prev_hash == expected_prev`).
+- **`created_at` stored as naive UTC, not timezone-aware**: SQLite has no real datetime
+  type — SQLAlchemy stores it as a string and drops tzinfo on reload. A tz-aware
+  datetime's `isoformat()` therefore differs before and after a round trip through the
+  database (e.g. missing the `+00:00` suffix), which broke hash verification for any
+  entry re-fetched from storage. Stripping tzinfo before storing, and always treating
+  the column as UTC, keeps the hashed string stable across reloads.
+- **`append_entry` flushes before hashing, not after**: the row's own autoincrement `id`
+  is part of the hashed payload, so the id must exist before the hash is computed. A
+  `session.flush()` assigns it without committing, then the hash is set and the commit
+  happens once.
+- **Plain SQLAlchemy `Session` queries, no FastAPI `Depends` session dependency yet**: a
+  `with SessionLocal() as session` per request is simpler while there's only one route
+  that writes and two that read. Revisit once more endpoints need a shared session
+  (e.g. the approval queue) or testing needs dependency overrides.

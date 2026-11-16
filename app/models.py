@@ -1,9 +1,10 @@
 """Pydantic request/response models for the Countersign API."""
 
+from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ActionRequest(BaseModel):
@@ -22,3 +23,22 @@ class DecisionResponse(BaseModel):
     decision: Literal["allow", "block", "needs_approval"]
     reason: str
     matched_rule: str | None
+
+
+class AuditEntryResponse(BaseModel):
+    """One entry of the hash-chained audit log, as returned by the API."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    action_id: str
+    agent_id: str
+    tool: str
+    arguments: dict[str, Any]
+    context: str | None
+    decision: Literal["allow", "block", "needs_approval"]
+    reason: str
+    matched_rule: str | None
+    prev_hash: str
+    hash: str
+    created_at: datetime
